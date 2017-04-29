@@ -2,8 +2,8 @@ package multithread;
 
 import static java.lang.Math.random; //importazione classe Random
 import java.util.Random;
-import java.util.concurrent.TimeUnit;
-import static multithread.TicTacToe.punteggio;
+import java.util.concurrent.TimeUnit; 
+import static multithread.TicTacToe.punteggio;  //Importazione della variabile statica punteggio contenuta in TicTacToe
 
 public class MultiThread {
     
