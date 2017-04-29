@@ -20,3 +20,4 @@ Per cambiare l'intervallo del tempo random:
 
 ## Ringraziamenti:
 Ringrazio il professore per le spiegazioni in classe e i miei compagni che hanno condiviso le loro conoscenze nella pull request.
+
