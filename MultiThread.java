@@ -25,7 +25,7 @@ public class MultiThread {
         catch (InterruptedException e) {    
         }
         System.out.println("PunteggioSync = " + monitor.getPunteggioSync());    //Stampa il punteggio del metodo synchronized
-        System.out.println("PunteggioNoSync = " + monitor.getPunteggioNoSync());//Stampa il punteggio del metodo non synchronized
+        //System.out.println("PunteggioNoSync = " + monitor.getPunteggioNoSync());//Stampa il punteggio del metodo non synchronized
         long end = System.currentTimeMillis();
         System.out.println("Main Thread completata! tempo di esecuzione: " + (end - start) + "ms");  
     }
@@ -48,7 +48,7 @@ class TicTacToe implements Runnable {                                           
             int n = 300-j;
             int tempo = rand.nextInt(n)+j;
             monitor.incrementaPunteggioSync(nome, msg, tempo);                  //Richiama il metodo synchronized
-            monitor.incrementaPunteggioNoSync(nome, msg, tempo);                //Richioama lo stesso metodo non synchronized
+            //monitor.incrementaPunteggioNoSync(nome, msg, tempo);                //Richioama lo stesso metodo non synchronized
             msg = "<" + nome + "> " + nome + ": " + i;
             System.out.println(msg);
         }
@@ -97,3 +97,5 @@ class Monitor {                                                                 
         lastNoSync = thread;                                                    //Ultimo thread visualizzato
     }
 }
+/* NOTA: attivare i metodi incremetaPunteggioSync() e incrementaPunteggioNoSync() con la stessa esecuzione potrebbe provocare errori
+   nel calcolo del punteggio, è consigliabile attivarli uno alla volta*/
