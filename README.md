@@ -9,15 +9,32 @@ Aggiunti il Monitor e i metodi annessi, sostituendo le variabili statiche, per e
 
 ## Istruzioni di installazione:
 - Scaricare il file MultiTread.java;
+- Importare il file su NetBeans.
+
+## Manuale d'uso:
+- Aprire il programma con NetBeans;
+- Eseguire il programma.
+
+Per cambiare l'intervallo del tempo random:
+- inserire in j il numero minimo;
+- inserire in n il numero massimo.
+
+# FilosofiACena
+
+## Descrizione del programma:
+Il programma descrive una cena di filosofi. I filosofi, durante la cena, possono mangiare, bere o pensare, ma seguendo deteminate regole:
+- si può mangiare solo avendo a disposizione 2 forchette;
+- si può bere solo tra una portata e l'altra;
+- prima di mangiare deve pensare un pò.
+La cena finisce quando i filosofi hanno mangiato 3 portate.
+
+## Istruzioni di installazione:
+- Scaricare il file FilosofiACena.java;
 - Importare il file su NetBeans;
 
 ## Manuale d'uso:
 - Aprire il programma con NetBeans;
-- Eseguire il programma;
-
-Per cambiare l'intervallo del tempo random:
-- inserire in j il numero minimo
-- inserire in n il numero massimo
+- Eseguire il programma.
 
 ## Autori:
 - Luca Ronca
