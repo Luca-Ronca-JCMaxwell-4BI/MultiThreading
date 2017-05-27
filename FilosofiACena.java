@@ -1,253 +1,221 @@
-/*
- * Con questo programma voglio illustrare i seguenti concetti:
- * 0. THREADs comunicano condividendo variabili
- * 1. MONITOR gestiscono attività di coordinamento e di accesso alle variabili tra più THREADs. 
- * 2. Le variabili dell'OGGETTO MONITOR sono le risorse da condividere tra THREADs
- * 3. Le attivita' CRITICHE che vengono fatte sulle variabili del MONITOR sono i metodi SINCRONIZZATI della classe MONITOR
- * 4. i THREADs ricevono il puntatore all'OGGETTO MONITOR e ne usano i metodi per accedere alle risorse
- * 5. la parola SYNCRONIZED chiude l'accesso agli altri THREADs che vogliono usare la stessa risorsa (competizione)
- * 6. WAIT e' usato per mettere in attesa i THREADs che vogliono usare una risorsa OCCUPATA (collaborazione)
- * 7. NOTIFY[ALL] e' usato per comunicare ai THREADs quando la risorsa e' di nuovo disponibile (collaborazioine)
- */
-
 package filosofiacena;
 
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/**
- *
- * @author Matteo Palitto
- */
-
 // Monitor 
 class Tavola {
-
-    // A questa tavola ci sono delle regole: ogni persona puo' solo fare una delle seguenti cose
-    // in JAVA enum sono piu' evoluti che in C++ possono contenere COSTRUTTORE e METODI
-    public enum Azione {
-        // ognuna di queste dichiarazioni invoca il costruttore (che in questo caso assegna il valore passato come argomento
-        // e' come se ognuno di queste COSTANTI fossero degli oggetti della classe enum...
-        PENSA                   (0),  // dopo tutto per questo che e' chiamato filosofo
-        vuolePRENDEREforchette  (1),  // questi filosofi mangiano solo se hanno due forchette in mano (sembrano mio figlio di 21 mesi...)
-        ASPETTAforchette        (2),  // se tutte e due le forchette non sono disponibili aspettano che qualcuno finisca di mangiare
-        MANGIA                  (3),  // dopo tutto e' un filosofo mangione
-        seNEandatoVIA           (4);  // una volta sazio e' ora di andare a farsi una pennichella dopo tutto quel pensare....
-
-        private final int idx;      // per ogni COSTANTE c'e' una varibile "idx"
+    boolean forchetta[];                                                        //Risorsa condivisa dai filosofi
+    static int M;                                                                      //Numero bottiglie di vino
+    int posti;                                                                  //posti a tavola
+    
+    public enum Azione {                                                        //Variabile enumerativa che comprende le azioni che un filosofo può compiere
+        pensa                   (0),                                            
+        vuolePrendereForchette  (1),                                            //Gli servono 2 forchette
+        aspettaForchette        (2),                                            //Se non sono disponibili aspetta
+        mangia                  (3),                                            //Se sono disponibili mangia
+        siAlza                  (4),                                            //Si alza dopo 3 portate 
+        beve                    (5);                                            //Tra una portata e l'altra beve un bicch8iere di vino
+        private final int idx;
         
-        //costruttore
+        //Costruttore
         private Azione (int idx) {
             this.idx = idx;
         }
 
-        //questo metodo ci permette di usare variabili di tipo ENUM in ARRAY (i cui indici possono essere solo degli interi)
-        public int getIDX() { return this.idx; }
-    }
-        
-    //su questa tavola ci sono tante forchette quanti posti a sedere
-    boolean forchetta[]; //true: sulla tavola, false: NON sulla tavola (in mano ad un filosofo)
-    int posti; // posti a sedere che corrisponde al numero di forchette
- 
-    //costruttore
-    public Tavola(int N) {
-        this.posti = N;
-        this.forchetta = new boolean[N];
-        for (int i=0; i<N; i++) { this.forchetta[i] = true; } //tutte le forchette iniziano sulla tavola
+        public int getIDX() { 
+            return this.idx; 
+        }
     }
     
-    public synchronized boolean prendiFORCHETTE (int Sinistra) {
-        
-        //ogni filosofo puo' prendere solo le forchette alla sua SINISTRA e alla sua DESTRA
+    //Costruttore
+    public Tavola(int N, int M) {
+        this.posti = N;
+        this.forchetta = new boolean[N];
+        for (int i=0; i<N; i++) { 
+            this.forchetta[i] = true; 
+        }
+        this.M = M;
+    }
+    
+    public synchronized boolean prendiForchette (int Sinistra) {                //Metodo sincronizzato che gestisce come i filosofi prendono le forchette
         int Destra = Sinistra + 1;
-        
-        // il tavolo e' rotondo, la forchetta di DESTRA dell'ultimo filosofo e' quella di SINISTRA del primo
-        if (Destra == posti) {
+        if (Destra == posti){
             Destra = 0;
         }
-        
-        if (forchetta[Sinistra] && forchetta[Destra]) {
-            // entranbi le forchette sono sul tavolo e il filosofo le agguanta per mangiare
-            forchetta[Sinistra] = false; //prende la forchetta Sinistra
-            forchetta[Destra] = false; //prende la forchetta Destra
+        if (forchetta[Sinistra] && forchetta[Destra]){                          //Il filosofo prende la sua forchetta insieme a quella del suo vicino
+            forchetta[Sinistra] = false; 
+            forchetta[Destra] = false; 
             return true;
-        } else {
-            return false;  // almeno una delle forchette non e' disponibile... non prendo nemmeno quella disponibile (nel caso ce ne fosse una)
+        } 
+        else {
+            return false;  
         }
     }    
 
-    public synchronized void aspettaFORCHETTE() {
+    public synchronized void aspettaForchette() {                               //Metodo sincronizzato chegewstisce l'attesa delle forchette
             try {
-                wait(); //si mette in attesa che qualcuno al tavolo finisca di usare le forchette
-            } catch (InterruptedException ex) {
+                wait();                                                         //Mette il thread in attesa delle risorse mancanti
+            } catch (InterruptedException ex){
                 Logger.getLogger(Tavola.class.getName()).log(Level.SEVERE, null, ex);
-            }
-            // qualcuno al tavolo ha smesso di usare le forchette e il filosofo esce dall'attesa    
+            }  
     }
     
-    public synchronized void posaFORCHETTE (int Sinistra) {
-        int Destra = Sinistra + 1;
-        
-        if (Destra == posti) {
+    public synchronized void posaForchette (int Sinistra) {                     //Metodo sincronizzato, il filosofo posa le forchette quando ha finito
+        int Destra = Sinistra + 1;      
+        if (Destra == posti){
             Destra = 0;
         }
-        
-        // filosofo ripone le forchette sul tavolo
-        forchetta[Sinistra] = true; //posa la forchetta Sinistra
-        forchetta[Destra] = true; //posa la forchetta Destra
-        
-        // System.out.println("F[" + Sinistra + "]: HA FINITO DI MANGIARE");
-        // notifica a tutti i filosofi in attesa che lui ha riposto le forchette sul tavolo e quindi sono nuovamente disponibili (collaborazione)
-        notifyAll();
-        
-    }
-    
+        forchetta[Sinistra] = true; 
+        forchetta[Destra] = true;
+        notifyAll();                                                            //Segnala a tutti i thread che ha concluso l'operazione e che le risorse sono nuovamente disponibili
+    }  
 }
 
-// Monitor per scrivere sullo schermo
-// anche lo schermo e' una risorsa comune ai vari filosofi che lo usano per dire cosa stanno facendo
-class Schermo {
+class Bottiglia{                                                                //Bottiglie di vino
+    int nBicchieri = 4;                                                         //Bicchieri di vino per bottiglia
     
-    // questa variabile e' usata per tenere conto di cosa sta facendo ogni filosofo
+    //Costruttore
+    public Bottiglia(){
+    }
+    
+    //Getter/Setter
+    public void setNBicchieri(int n){
+        nBicchieri = n;
+    }
+    public int getNBicchieri(){
+        return nBicchieri;
+    }
+}
+
+//Monitor
+class Monitor {                                                                 //Servge per stampare sullo schermo cosa succede durante la cena
     int filosofi[][] = new int[Tavola.Azione.values().length][FilosofiACena.Nfilosofi]; 
-    
-    // e questa per comporre il messaggio da scrivere sullo schermo
     String msg;
     
-    // i filosofi possono dire quello che stanno facendo scrivendolo sullo schermo ma solo UNO ALLA VOLTA!
-    public synchronized void aggiornaSITUAZIONE(int id, Tavola.Azione STAfacendo) {
-            // il filosofo scrive quello che sta facendo
-            msg = "F[" + id + "]" + STAfacendo.name();
-
-            // e aggiorna la situazione di chi sta facendo che cosa:
-            
-            // azzera qualsiasi azione stava facendo prima
-            // for(Azione a: Azione.values()) { filosofi[a.getIDX()][id] = 0; } 
-            for(int i=0; i<Tavola.Azione.values().length; i++) { filosofi[i][id] = 0; }
-            // e aggiorna la situazione segnalando quello che sta facendo in questo istante
-            filosofi[STAfacendo.getIDX()][id] = 1; 
-
-            // scrive la situazione aggiornata
-            for(Tavola.Azione a: Tavola.Azione.values()) {
-                msg += " |---| " + a.name() + ": ";
-                for(int i=0; i<FilosofiACena.Nfilosofi; i++) { if(filosofi[a.getIDX()][i] == 1) { msg+=i; } }
-            } 
-            System.out.println(msg);
+    public synchronized void aggiornaSituazione(int id, Tavola.Azione azione) { //Metodo sincronizzato, gestisce il variare delle azioni dei filosofi
+        msg = "F[" + id + "] " + azione.name();                                 //Stampa ciò che sta facendo il filosofo
+        for(int i=0; i<Tavola.Azione.values().length; i++){ 
+            filosofi[i][id] = 0; 
+        }
+        filosofi[azione.getIDX()][id] = 1;                                      //Aggiorna l'azione
+        for(Tavola.Azione a: Tavola.Azione.values()){
+            for(int i=0; i<FilosofiACena.Nfilosofi; i++){ 
+                if(filosofi[a.getIDX()][i] == 1){ 
+                } 
+            }
+        } 
+        System.out.println(msg);
     }
 }
 
-// la classe Filosofo e' la classe Runnable che significa avremo tante THREADs quanti sono i filosofi
-class Filosofo implements Runnable {
+class Filosofo implements Runnable{                                             //Classe che crea i thread
+    int id;                                                                     //"Nome" del filosofo  
+    Tavola.Azione azione;                                                       //Azione compiutadal filosofo
+    int mangiato = 0;                                                           //Numero di portate mangiate
+    Tavola tavolo;             
+    Monitor monitor;       
     
-    // variabili di OGGETTO (una copia per ogni oggetto di questa classe)
-    int id;                    // numero che identifica il filosofo
-    Tavola.Azione STAfacendo;  // che cosa sta facendo
-    int mangiato = 0;          // quante portate il filosofo ha mangiato
-    Tavola tavolo;             // in quale tavolo sta seduto
-    Schermo schermo;           // quale schermo ha per scrivere
-    
-    // costruttore
-    public Filosofo(int i, Tavola tav, Schermo schermoPERscrivere) {
+    //Costruttore
+    public Filosofo(int i, Tavola tav, Monitor monitor) {
         this.id = i;
         this.tavolo = tav;
-        this.STAfacendo = Tavola.Azione.PENSA;
-        this.schermo = schermoPERscrivere;
+        this.azione = Tavola.Azione.pensa;
+        this.monitor = monitor;
     }
     
-    // la classe Runnable DEVE implementare il metodo RUN
-    @Override
-    public void run () {
-    
+    @Override                                                                   //Annotazione del compilatore
+    public void run () {                                                        //Istruzioni che deve eseguire il thread
+        Bottiglia vino = new Bottiglia();                                       //Bottiglia di vino
         while (true) {
-
-            schermo.aggiornaSITUAZIONE(id, STAfacendo);
-
-            if(STAfacendo.name().equals("seNEandatoVIA")) { return; } // finalmente sazio se ne andato
-
-            //quello che il filosofo fara' dipende anche da quello che sta facendo
-            
-            switch (STAfacendo){
-
-                case PENSA:
-                    
-                    // filosofo ci pensa un po' su... ma non troppo 100ms
-                    try { TimeUnit.MILLISECONDS.sleep(100); } catch (InterruptedException e) {}
-                    
-                    // adesso e' ora di mangiare!
-                    STAfacendo = Tavola.Azione.vuolePRENDEREforchette;
+            monitor.aggiornaSituazione(id, azione);                             //Stampa cosa sta facendo il filosofo
+            switch (azione){
+                case pensa:                                                     //Azioni svolte quando pensa
+                    try { 
+                        TimeUnit.MILLISECONDS.sleep(100); 
+                    } 
+                    catch (InterruptedException e) {
+                    }
+                    azione = Tavola.Azione.vuolePrendereForchette;              //Dopo che pensa vuole mangiare
+                    System.out.println("F[" + id + "] ha pensato a qualcosa");
                     break;
 
-                case vuolePRENDEREforchette:
-
-                    // il filosofo vuole prendere sia la forchetta alla sua sinistra che alla sua destra
-                    if (tavolo.prendiFORCHETTE(id)) {
-                    // se disponibili prende entrambi
-                        System.out.println("F[" + id + "] ha PRESO le forchette");
-                        STAfacendo = Tavola.Azione.MANGIA;
+                case vuolePrendereForchette:                                    //Azioni svolte quando vuole prendere le forchette
+                    if (tavolo.prendiForchette(id)) {                           //Se sono disponibili prernde le forchette
+                        System.out.println("F[" + id + "] ha preso le forchette");
+                        azione = Tavola.Azione.mangia;
                     } else {
-                        // se entrambe forchette non sono disponibili
-                        // non ne prende nessuna e si mette ad aspettare
-                        System.out.println("F[" + id + "] NON ha trovato almeno una delle forchette");
-                        STAfacendo = Tavola.Azione.ASPETTAforchette;
+                        System.out.println("F[" + id + "] non ha trovato almeno una delle forchette");
+                        azione = Tavola.Azione.aspettaForchette;                //Altriment aspetta
                     }
                     break;
 
-                case ASPETTAforchette:
-                    // si mette ad aspettare che quelli che stanno mangiando finiscano e lo avvertano
-                    tavolo.aspettaFORCHETTE();
-                    STAfacendo = Tavola.Azione.vuolePRENDEREforchette;
+                case aspettaForchette:                                          //Azioni svolte quando aspetta le forchette
+                    tavolo.aspettaForchette();                                  //Aspetta...
+                    azione = Tavola.Azione.vuolePrendereForchette;              //Appena qualcuno ha finito prende le forchette
                     break;
 
-                case MANGIA:
-
-                    // ci mettono piu' a mangiare che a pensare.... che strani filosofi...
-                    try { TimeUnit.MILLISECONDS.sleep(200); } catch (InterruptedException e) {}
-
-                    // ha finito di mangiare
-                    mangiato++;
-                    System.out.println("F[" + id + "] ha FINITO di MANGIARE la portata N. " + mangiato);
-                    tavolo.posaFORCHETTE(id);
-
-                    // siamo in italia... almeno 3 portate...
-                    if(mangiato == 3) { 
-                        //anche il dolce era buono... ora di andare a fare la pennichella
-                        STAfacendo = Tavola.Azione.seNEandatoVIA;
-                        System.out.println("F[" + id + "] si ALZA da TAVOLA");
-                    } // finalmente sazio!  Filosofo si alza...
-                    else { STAfacendo = Tavola.Azione.PENSA; } // non ancora sazio... rimane a tavola
+                case mangia:                                                    //Azioni svolte quando mangia
+                    try { 
+                        TimeUnit.MILLISECONDS.sleep(200); 
+                    } 
+                    catch (InterruptedException e) {
+                    }
+                    mangiato++;                                                 //Incrementa il numero delle portate mangiate
+                    System.out.println("F[" + id + "] ha finito di mangiare la portata N. " + mangiato);
+                    tavolo.posaForchette(id);                                   //Appena finito posa le forchette
+                    if(mangiato == 3) {                                         //Se ha mangiato 3 portate si alza
+                        azione = Tavola.Azione.siAlza;
+                        System.out.println("F[" + id + "] si alza da tavola");
+                    } 
+                    else { 
+                        azione = Tavola.Azione.beve;                            //Altrimenti beve un bicchiere di vino
+                    }
                     break;
-
-                default:
-                    System.out.println("ERROR: non mi dovrei trovare qui MAI!!");
-                    return;
-
+                    
+                case beve:                                                      //Azioni svolte quando beve
+                    int n = vino.getNBicchieri() - 1;                           //Il filosofo consuma un bicchiere
+                    if(n == 0){                                                 //Se la bottiglia è vuota
+                        if(Tavola.M != 0)                                       //Si prende una bottiglia nuova
+                        {
+                            vino.setNBicchieri(4);
+                            Tavola.M --;
+                        }
+                        else{                                                   //Sempre se ne siano rimaste
+                            System.out.println("Bottiglie di vino teminate");   
+                        }
+                    }
+                    else{
+                        vino.setNBicchieri(n);
+                    }
+                    System.out.println("F[" + id + "] ha bevuto un bicchiere di vino");
+                    azione = Tavola.Azione.pensa;                               //Dopo aver bevuto un po il filosofo pensa
+                    break;
+                    
+                case siAlza:                                                    //Azioni svolte quando si alza
+                    System.out.println("F[" + id + "] si alza da tavola");      
+                    return;                                                     //Interrompe il ciclo e si alza da tavola 
+                    
+                default:                                                        //In teoria questo non dovrebbe capitare
+                    System.out.println("ERRORE");                               //Ma se succede stampa un messaggio di errore
+                    break;
             }
         }
     }
 }
 
-public class FilosofiACena {
-   public final static int Nfilosofi = 5; // numero filosofi
-
-    /**
-     * @param args the command line arguments
-     */
+public class FilosofiACena {                                                    //Classe del main
+    public final static int Nfilosofi = 5;                                      //Numero di filosofi invitati a cena
+    public static int NBottiglie = 4;                                           //Scorte di vino presenti
+    
     public static void main(String[] args) {
-        // i 2 OGGETTI MONITOR
-        Tavola tavola = new Tavola(Nfilosofi);
-        Schermo perSCRIVERE = new Schermo();
-        
-        // i filosofi
-        Thread[] filosofo = new Thread[Nfilosofi];
-        
-        // i filosofi si siedono a tavola e gli viene detto quale schermo usare per scrivere
+        Tavola tavola = new Tavola(Nfilosofi, NBottiglie);                      //Sceglie il tavolo
+        Monitor m = new Monitor();                                              //Crea un monitor
+        Thread[] filosofo = new Thread[Nfilosofi];                              
         for (int i=0; i<Nfilosofi; i++) {
-
-            filosofo[i] = new Thread( new Filosofo(i, tavola, perSCRIVERE) );
+            filosofo[i] = new Thread( new Filosofo(i, tavola, m) );
             filosofo[i].start();
-
         }
     }
-    
 }
